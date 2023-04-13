@@ -57,40 +57,36 @@ app.get("/participants",(req,res)=>{
 app.post("/messages", (req, res) =>{
     const {to, text, type} = req.body
     const from = req.headers.user
-    let userOnline = false
     db.collection("participants").findOne({name: from}).then(a => {
         if (a.name===from){
-            userOnline=true
-
+            const userSchema = joi.object({
+                to: joi.string().required(),
+                text: joi.string().required(),
+                type: joi.string().required().valid("message", "private_message"),
+                from: joi.string().required()
+            })
+        
+            const messages = {to, text, type, from}
+            const validation = userSchema.validate(messages, { abortEarly: false });
+            if(validation.error){
+                
+                const errors = validation.error.details.map((detail) => detail.message);
+                return res.status(422).send(errors);
+            }
+        
+            db.collection("messages").insertOne({...messages, time: dayjs().format("HH:mm:ss")})
+            .then(()=>res.sendStatus(201))
+            .catch(err => res.status(500).send(err.message))
         }
 
     })
-    .catch(err=> res.status(422).send(err.message))
+    .catch(()=> res.status(409).send("Usuário não logado"))
 
 
     
 
 
-    const userSchema = joi.object({
-        to: joi.string().required(),
-        text: joi.string().required(),
-        type: joi.string().required().valid("message", "private_message"),
-        from: joi.string().required()
-    })
-
-    const messages = {to, text, type, from}
-    const validation = userSchema.validate(messages, { abortEarly: false });
-    console.log(userOnline)
     
-    if(validation.error){
-        
-        const errors = validation.error.details.map((detail) => detail.message);
-        return res.status(422).send(errors);
-    }
-
-    db.collection("messages").insertOne({...messages, time: dayjs().format("HH:mm:ss")})
-    .then(()=>res.sendStatus(201))
-    .catch(err => res.status(500).send(err.message))
 
 
 })
