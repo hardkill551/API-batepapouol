@@ -28,12 +28,12 @@ app.post("/participants", (req, res)=>{
         return res.status(422).send(errors);
     }
 
-    db.collection("users").find().toArray()
+    db.collection("participants").find().toArray()
     .then(users => {
         if(users.find(u => u.name === name)) return res.sendStatus(409)
         else{
             const user = {name, lastStatus: Date.now()}
-            db.collection("users").insertOne(user)
+            db.collection("participants").insertOne(user)
             .then(()=> {
                 const chatEntry = { from: name, to: 'Todos', text: 'entra na sala...', type: 'status', time: dayjs().format("HH:mm:ss") }
                 db.collection("messages").insertOne(chatEntry)
@@ -49,7 +49,7 @@ app.post("/participants", (req, res)=>{
 })
 
 app.get("/participants",(req,res)=>{
-    db.collection("users").find().toArray()
+    db.collection("participants").find().toArray()
         .then(users => res.send(users))
         .catch(err => res.status(500).send(err.message))
 })
@@ -58,7 +58,7 @@ app.post("/messages", (req, res) =>{
     const {to, text, type} = req.body
     const from = req.headers.user
     let userOnline = false
-    db.collection("users").findOne({name: from}).then(a => {
+    db.collection("participants").findOne({name: from}).then(a => {
         if (a.name===from){
             userOnline=true
 
