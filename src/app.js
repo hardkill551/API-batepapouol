@@ -48,6 +48,12 @@ app.post("/participants", (req, res)=>{
     
 })
 
+app.get("/participants",(req,res)=>{
+    db.collection("users").find().toArray()
+        .then(users => res.send(users))
+        .catch(err => res.status(500).send(err.message))
+})
+
 
 
 app.listen(5000)
