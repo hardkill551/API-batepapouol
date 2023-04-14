@@ -1,5 +1,5 @@
 import express from "express";
-import {MongoClient} from "mongodb"
+import {MongoClient, ObjectId} from "mongodb"
 import cors from "cors"
 import dotenv from "dotenv"
 import joi from "joi"
@@ -122,11 +122,29 @@ app.post("/status", async(req, res)=>{
         await db.collection("participants").updateOne({name: user},{$set: {lastStatus: Date.now()}})
         res.sendStatus(200)
     }   catch(err){
-
+        res.status(500).send(err.message)
     }
+    
 })
 
 
 
+
+setInterval(async ()=>{
+    const usersToDelete = await db.collection("participants").find({lastStatus: {$lt: Date.now()-10000}}).toArray()
+    while(usersToDelete.length>0){
+    await db.collection("participants").deleteOne({_id: usersToDelete[0]._id})
+    await db.collection("messages").insertOne(
+        { 
+            from: usersToDelete[0].name,
+            to: 'Todos',
+            text: 'sai da sala...',
+            type: 'status',
+            time: dayjs().format("HH:mm:ss")
+        }
+    )
+    usersToDelete.shift()
+}
+}, 15000)
 
 app.listen(5000)
