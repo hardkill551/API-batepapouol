@@ -153,24 +153,34 @@ app.delete("/messages/:id", async (req, res)=>{
     }
 })
 
+// app.put("/messages/:id",(req, res)=>{
+//     const {to, text, type} = req.body
+//     const {user} = req.headers
+//     const {id} = req.params
+
+//     const userSchema = joi.object({
+//         to: joi.string().required(),
+//         text: joi.string().required(),
+//         type: joi.string().required().valid("message", "private_message")
+//     })
+// })
 
 
-
-// setInterval(async ()=>{
-//     const usersToDelete = await db.collection("participants").find({lastStatus: {$lt: Date.now()-10000}}).toArray()
-//     while(usersToDelete.length>0){
-//     await db.collection("participants").deleteOne({_id: usersToDelete[0]._id})
-//     await db.collection("messages").insertOne(
-//         { 
-//             from: usersToDelete[0].name,
-//             to: 'Todos',
-//             text: 'sai da sala...',
-//             type: 'status',
-//             time: dayjs().format("HH:mm:ss")
-//         }
-//     )
-//     usersToDelete.shift()
-// }
-// }, 1500000000000)
+setInterval(async ()=>{
+    const usersToDelete = await db.collection("participants").find({lastStatus: {$lt: Date.now()-10000}}).toArray()
+    while(usersToDelete.length>0){
+    await db.collection("participants").deleteOne({_id: usersToDelete[0]._id})
+    await db.collection("messages").insertOne(
+        { 
+            from: usersToDelete[0].name,
+            to: 'Todos',
+            text: 'sai da sala...',
+            type: 'status',
+            time: dayjs().format("HH:mm:ss")
+        }
+    )
+    usersToDelete.shift()
+}
+}, 1500000000000)
 
 app.listen(5000)
