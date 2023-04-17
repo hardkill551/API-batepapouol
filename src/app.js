@@ -81,7 +81,7 @@ app.post("/messages", async (req, res) =>{
        
        const validation = userSchema.validate({to, text, type, from}, { abortEarly: false });
        
-       const messages = {to, text, type, from}
+       
         if(validation.error){ 
             const errors = validation.error.details.map((detail) => detail.message);
             return res.status(422).send(errors);
@@ -89,6 +89,7 @@ app.post("/messages", async (req, res) =>{
         to = stripHtml(req.body.to).result.trim()
        text = stripHtml(req.body.text).result.trim()
        type = stripHtml(req.body.type).result.trim()
+       const messages = {to, text, type, from}
         await db.collection("messages").insertOne({...messages, time: dayjs().format("HH:mm:ss")})
         res.sendStatus(201)
     } catch (err){
@@ -153,17 +154,43 @@ app.delete("/messages/:id", async (req, res)=>{
     }
 })
 
-// app.put("/messages/:id",(req, res)=>{
-//     const {to, text, type} = req.body
-//     const {user} = req.headers
-//     const {id} = req.params
-
-//     const userSchema = joi.object({
-//         to: joi.string().required(),
-//         text: joi.string().required(),
-//         type: joi.string().required().valid("message", "private_message")
-//     })
-// })
+app.put("/messages/:id", async (req, res)=>{ 
+         const {to, text, type} = req.body 
+         const {user} = req.headers 
+         const {id} = req.params 
+        const alteration = {}
+        if (to) alteration.to = to
+        if (text) alteration.text = text
+        if (type) alteration.type = type
+        try{
+            const from = await db.collection("participants").findOne({name: user})
+            if(!from) return res.status(422).send("Usuário não existe")
+            else{
+            alteration.from = from
+        }
+        
+         const userSchema = joi.object({ 
+             to: joi.string(), 
+             text: joi.string(), 
+             type: joi.string().valid("message", "private_message") ,
+         from: joi.string().required()
+         }) 
+        validation = userSchema.validate(alteration, {abortEarly:false})
+        if (validation.error){
+            const errors = validation.error.details.map(detail=>detail.message)
+            return res.status(422).send(errors)
+    }
+        const message = await db.collection("messages").findOne({_id: new ObjectId(id)})
+        if(!message) return res.sendStatus(404)
+        if(message.from !== user) return res.sendStatus(401)
+    
+        const result = await db.collection("messages").updateOne({_id: new ObjectId(id)},{$set:alteration})
+        if (result.matchedCount === 0 ) return res.status(404).send("Esse usuário não existe!")
+        res.send("Usuário atualizado")
+    }	catch(err){
+        res.status(500).send(err.message)
+    }
+     })
 
 
 setInterval(async ()=>{
