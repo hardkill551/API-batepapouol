@@ -21,10 +21,12 @@ try{
 const db = mongoClient.db()
 
 app.post("/participants", async (req, res)=>{
+    let {name} = req.body
     const userSchema = joi.object({
         name: joi.string().required()
     })
-    const name = stripHtml(req.body.name).result.trim()
+    
+    
     const validation = userSchema.validate(req.body)
     
     if(validation.error) {
@@ -32,6 +34,7 @@ app.post("/participants", async (req, res)=>{
         return res.status(422).send(errors);
     }
 
+    name = stripHtml(name).result.trim()
     try {
         const users = await db.collection("participants").find().toArray()
 
@@ -62,9 +65,8 @@ app.get("/participants", async (req,res)=>{
 
 app.post("/messages", async (req, res) =>{
     const from = req.headers.user
-    const to = stripHtml(req.body.to).result.trim()
-    const text = stripHtml(req.body.text).result.trim()
-    const type = stripHtml(req.body.type).result.trim()
+    let {to, text, type} = req.body
+
     try{
         const user = await db.collection("participants").findOne({name: from})
         if(!user) return res.status(422).send("Usuario não existe")
@@ -76,9 +78,12 @@ app.post("/messages", async (req, res) =>{
             from: joi.string().required()
     })
         
+       
+       const validation = userSchema.validate({to, text, type, from}, { abortEarly: false });
+       to = stripHtml(req.body.to).result.trim()
+       text = stripHtml(req.body.text).result.trim()
+       type = stripHtml(req.body.type).result.trim()
        const messages = {to, text, type, from}
-       const validation = userSchema.validate(messages, { abortEarly: false });
-
         if(validation.error){ 
             const errors = validation.error.details.map((detail) => detail.message);
             return res.status(422).send(errors);
@@ -129,14 +134,20 @@ app.post("/status", async(req, res)=>{
     
 })
 
-app.delete("messages/:ID_DA_MENSAGEM", async (req, res)=>{
+app.delete("/messages/:id", async (req, res)=>{
     const {user} = req.headers
+
     const {id} = req.params
-    try{
-        const message = await db.collection("/messages").findOne({_id: new ObjectId(id)})
+
+    try{   
+        const message = await db.collection("messages").findOne({_id: new ObjectId(id)})
+        console.log(message)
         if(!message) return res.sendStatus(404)
         if(message.from !== user) return res.sendStatus(401)
-        db.collection("/messages").deleteOne({_id: new ObjectId(id)})
+        const result = await db.collection("messages").deleteOne({_id: new ObjectId(id)})
+        if (result.deletedCount === 0 ) return res.send("Usuario não deletado com sucesso")
+        res.send("Usuario deletado com sucesso")
+        
     } catch(err){
         res.status(500).send(err.message)
     }
@@ -144,21 +155,22 @@ app.delete("messages/:ID_DA_MENSAGEM", async (req, res)=>{
 
 
 
-setInterval(async ()=>{
-    const usersToDelete = await db.collection("participants").find({lastStatus: {$lt: Date.now()-10000}}).toArray()
-    while(usersToDelete.length>0){
-    await db.collection("participants").deleteOne({_id: usersToDelete[0]._id})
-    await db.collection("messages").insertOne(
-        { 
-            from: usersToDelete[0].name,
-            to: 'Todos',
-            text: 'sai da sala...',
-            type: 'status',
-            time: dayjs().format("HH:mm:ss")
-        }
-    )
-    usersToDelete.shift()
-}
-}, 15000)
+
+// setInterval(async ()=>{
+//     const usersToDelete = await db.collection("participants").find({lastStatus: {$lt: Date.now()-10000}}).toArray()
+//     while(usersToDelete.length>0){
+//     await db.collection("participants").deleteOne({_id: usersToDelete[0]._id})
+//     await db.collection("messages").insertOne(
+//         { 
+//             from: usersToDelete[0].name,
+//             to: 'Todos',
+//             text: 'sai da sala...',
+//             type: 'status',
+//             time: dayjs().format("HH:mm:ss")
+//         }
+//     )
+//     usersToDelete.shift()
+// }
+// }, 1500000000000)
 
 app.listen(5000)
