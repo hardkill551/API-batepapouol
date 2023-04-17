@@ -4,6 +4,7 @@ import cors from "cors"
 import dotenv from "dotenv"
 import joi from "joi"
 import dayjs from "dayjs";
+import { stripHtml } from "string-strip-html";
 
 const app = express()
 app.use(express.json())
@@ -23,9 +24,9 @@ app.post("/participants", async (req, res)=>{
     const userSchema = joi.object({
         name: joi.string().required()
     })
-    const {name} = req.body
-    const validation = userSchema.validate({name})
-
+    const name = stripHtml(req.body.name).result.trim()
+    const validation = userSchema.validate(req.body)
+    
     if(validation.error) {
         const errors = validation.error.details.map((detail) => detail.message);
         return res.status(422).send(errors);
@@ -60,9 +61,10 @@ app.get("/participants", async (req,res)=>{
 })
 
 app.post("/messages", async (req, res) =>{
-    const {to, text, type} = req.body
     const from = req.headers.user
-
+    const to = stripHtml(req.body.to).result.trim()
+    const text = stripHtml(req.body.text).result.trim()
+    const type = stripHtml(req.body.type).result.trim()
     try{
         const user = await db.collection("participants").findOne({name: from})
         if(!user) return res.status(422).send("Usuario não existe")
@@ -126,6 +128,9 @@ app.post("/status", async(req, res)=>{
     }
     
 })
+
+
+
 
 
 
