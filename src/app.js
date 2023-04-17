@@ -80,15 +80,15 @@ app.post("/messages", async (req, res) =>{
         
        
        const validation = userSchema.validate({to, text, type, from}, { abortEarly: false });
-       to = stripHtml(req.body.to).result.trim()
-       text = stripHtml(req.body.text).result.trim()
-       type = stripHtml(req.body.type).result.trim()
+       
        const messages = {to, text, type, from}
         if(validation.error){ 
             const errors = validation.error.details.map((detail) => detail.message);
             return res.status(422).send(errors);
         }
-        
+        to = stripHtml(req.body.to).result.trim()
+       text = stripHtml(req.body.text).result.trim()
+       type = stripHtml(req.body.type).result.trim()
         await db.collection("messages").insertOne({...messages, time: dayjs().format("HH:mm:ss")})
         res.sendStatus(201)
     } catch (err){
