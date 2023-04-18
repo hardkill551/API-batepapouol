@@ -1,1 +1,1 @@
-# projeto13-batepapo-uol-api
+# batepapo-uol-api
